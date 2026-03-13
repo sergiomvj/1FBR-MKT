@@ -1,139 +1,143 @@
-
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 
-type ChannelRow = {
-  channel: string;
-  leads: number;
-  hot: number;
-  avgScore: number;
+type BlueprintRow = {
+  id: string;
+  copy_assets: {
+    headline?: string;
+    body?: string;
+    cta?: string;
+  } | null;
+  decision_rules: Array<{
+    title?: string;
+    category?: string;
+    priority?: string;
+    rationale?: string;
+    action?: string;
+  }> | null;
 };
 
-const Insights: React.FC<{ tenantId?: string | null }> = ({ tenantId }) => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [channels, setChannels] = useState<ChannelRow[]>([]);
+const executiveNarratives = [
+  {
+    title: 'Leitura consolidada',
+    body: 'O ecossistema esta respondendo melhor quando o FBR-MKT entrega clareza antes da execucao. O principal ganho atual e reduzir dispersao de narrativa.',
+  },
+  {
+    title: 'Pressao competitiva',
+    body: 'Os concorrentes reforcam discurso de estrategia premium, mas ainda com baixa capacidade de materializacao. A FBR pode explorar isso como diferenca central.',
+  },
+];
 
-  const sinceIso = useMemo(() => new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), []);
+const Insights: React.FC<{ tenantId?: string | null }> = ({ tenantId }) => {
+  const [blueprints, setBlueprints] = useState<BlueprintRow[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!tenantId) {
-      setChannels([]);
+      setBlueprints([]);
       return;
     }
 
-    void (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const { data, error: loadError } = await supabase
-          .from('leads')
-          .select('score,intent,source,created_at')
-          .eq('tenant_id', tenantId)
-          .gte('created_at', sinceIso)
-          .limit(1000);
+    void loadBlueprints();
+  }, [tenantId]);
 
-        if (loadError) throw loadError;
+  const loadBlueprints = async () => {
+    const { data, error: loadError } = await supabase
+      .from('strategy_blueprints')
+      .select('id, copy_assets, decision_rules')
+      .eq('tenant_id', tenantId)
+      .order('created_at', { ascending: false })
+      .limit(6);
 
-        const rows = (data || []) as Array<{ score: number; intent: string; source: any }>;
-        const acc = new Map<string, { leads: number; hot: number; scoreSum: number }>();
+    if (loadError) {
+      setError(loadError.message);
+      return;
+    }
 
-        for (const r of rows) {
-          const channel = String(r.source?.channel || 'unknown');
-          const cur = acc.get(channel) || { leads: 0, hot: 0, scoreSum: 0 };
-          cur.leads += 1;
-          cur.hot += r.intent === 'hot' ? 1 : 0;
-          cur.scoreSum += Number(r.score || 0);
-          acc.set(channel, cur);
-        }
+    setBlueprints((data || []) as BlueprintRow[]);
+    setError(null);
+  };
 
-        const list: ChannelRow[] = Array.from(acc.entries()).map(([channel, v]) => ({
-          channel,
-          leads: v.leads,
-          hot: v.hot,
-          avgScore: v.leads === 0 ? 0 : v.scoreSum / v.leads
-        }));
-
-        list.sort((a, b) => b.leads - a.leads);
-        setChannels(list);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Erro ao carregar insights.');
-        setChannels([]);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [tenantId, sinceIso]);
+  const decisionCount = blueprints.reduce((acc, item) => acc + (item.decision_rules?.length || 0), 0);
 
   return (
-    <div className="p-8 space-y-8 animate-in fade-in duration-500">
-      <div>
-        <h2 className="text-3xl font-black tracking-tight">Insights & BI</h2>
-        <p className="text-slate-500 mt-1">Transformando dados brutos em decisões acionáveis (30 dias).</p>
-      </div>
-
-      {error && <div className="text-sm text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl p-4">{error}</div>}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-card-dark border border-border-dark rounded-2xl p-6 space-y-6">
-          <div className="flex justify-between items-center">
-            <h4 className="text-sm font-black uppercase text-slate-500 tracking-widest">Performance por Canal</h4>
-            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{loading ? 'Carregando…' : 'Atualizado'}</span>
-          </div>
-          <div className="bg-surface-dark/50 rounded-xl border border-border-dark overflow-hidden">
-            <div className="grid grid-cols-4 gap-2 p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-border-dark">
-              <div>Canal</div>
-              <div className="text-right">Leads</div>
-              <div className="text-right">Hot</div>
-              <div className="text-right">Score</div>
+    <div className="p-4 lg:p-8 space-y-8 animate-in fade-in duration-500 max-w-7xl mx-auto">
+      <section className="rounded-[28px] border border-border-dark bg-card-dark p-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-primary">
+              <span className="size-2 rounded-full bg-primary"></span>
+              Insights Executivos
             </div>
-            <div className="divide-y divide-border-dark">
-              {channels.length === 0 && !loading ? (
-                <div className="p-6 text-sm text-slate-500">Sem dados para este período.</div>
-              ) : (
-                channels.slice(0, 8).map((c) => (
-                  <div key={c.channel} className="grid grid-cols-4 gap-2 p-4 text-sm">
-                    <div className="font-bold text-slate-200">{c.channel}</div>
-                    <div className="text-right text-slate-300 font-bold">{c.leads}</div>
-                    <div className="text-right text-rose-400 font-bold">{c.hot}</div>
-                    <div className="text-right text-slate-300 font-bold">{Math.round(c.avgScore)}</div>
+            <h2 className="mt-4 text-4xl font-black tracking-tight text-white">Cockpit executivo da camada estrategica do ecossistema FBR</h2>
+            <p className="mt-3 text-sm leading-relaxed text-slate-400">
+              Leitura resumida para acompanhar o que o `FBR-MKT` esta enxergando, priorizando e despachando para os outros sistemas.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-primary/20 bg-primary/5 px-5 py-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Workspace</p>
+            <p className="mt-2 text-sm font-bold text-white">{tenantId ? 'Tenant conectado' : 'Sem tenant ativo'}</p>
+          </div>
+        </div>
+      </section>
+
+      {error && <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-300">{error}</div>}
+
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {[
+          { label: 'Blueprints salvos', value: String(blueprints.length), helper: 'outputs persistidos do sistema' },
+          { label: 'Decision rules', value: String(decisionCount), helper: 'regras de decisao disponiveis' },
+          { label: 'Narrativas em leitura', value: '02', helper: 'sumario executivo atual' },
+          { label: 'Despachos prontos', value: String(Math.min(decisionCount, 4)), helper: 'prontos para orquestracao' },
+        ].map((card) => (
+          <article key={card.label} className="rounded-2xl border border-border-dark bg-card-dark p-6">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{card.label}</p>
+            <h3 className="mt-3 text-4xl font-black text-white">{card.value}</h3>
+            <p className="mt-2 text-sm text-slate-400">{card.helper}</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <div className="rounded-3xl border border-border-dark bg-card-dark p-6">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Narrativa executiva</p>
+          <div className="mt-6 space-y-4">
+            {executiveNarratives.map((item) => (
+              <div key={item.title} className="rounded-2xl border border-white/8 bg-background-dark/50 p-5">
+                <h3 className="text-lg font-black text-white">{item.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-slate-400">{item.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-primary/20 bg-primary/5 p-6">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Ultimas decisoes persistidas</p>
+          <div className="mt-6 space-y-3">
+            {blueprints.length > 0 ? (
+              blueprints.map((item) => {
+                const firstRule = item.decision_rules?.[0];
+                return (
+                  <div key={item.id} className="rounded-2xl border border-primary/10 bg-background-dark/40 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-sm font-black text-white">{item.copy_assets?.headline || 'Blueprint sem headline'}</h3>
+                      <span className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">
+                        {firstRule?.priority || 'Sem prioridade'}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm text-slate-300">{firstRule?.action || item.copy_assets?.cta || 'Sem acao registrada.'}</p>
                   </div>
-                ))
-              )}
-            </div>
-          </div>
-          <div className="bg-primary/5 border border-l-4 border-primary p-4 rounded-r-xl">
-            <h5 className="text-xs font-black text-primary uppercase mb-2">E daí? (Interpretação)</h5>
-            <p className="text-xs text-slate-300 leading-relaxed italic">
-              "Compare volume vs score médio. Se um canal traz volume mas score baixo, revise abordagem e mapeamento de eventos."
-            </p>
-            <h5 className="text-xs font-black text-primary uppercase mt-4 mb-2">O que fazer agora? (Ação)</h5>
-            <p className="text-xs text-slate-300 font-bold">
-              Criar limites por canal: pausar/ajustar quando score médio cair abaixo do mínimo.
-            </p>
+                );
+              })
+            ) : (
+              <div className="rounded-2xl border border-dashed border-primary/20 bg-background-dark/30 p-6 text-sm text-slate-400">
+                Nenhum output persistido ainda. Use a `Decision Room` para salvar a primeira recomendacao.
+              </div>
+            )}
           </div>
         </div>
-
-        <div className="bg-card-dark border border-border-dark rounded-2xl p-6 space-y-6">
-          <div className="flex justify-between items-center">
-            <h4 className="text-sm font-black uppercase text-slate-500 tracking-widest">Aderência Produto-Mercado</h4>
-            <span className="material-symbols-outlined text-slate-500">trending_up</span>
-          </div>
-          <div className="aspect-video bg-surface-dark/50 rounded-xl border border-border-dark flex items-center justify-center text-slate-700 font-black uppercase tracking-widest">
-            Gráfico: Conversão por Segmento (em evolução)
-          </div>
-          <div className="bg-emerald-500/5 border border-l-4 border-emerald-500 p-4 rounded-r-xl">
-            <h5 className="text-xs font-black text-emerald-500 uppercase mb-2">E daí? (Interpretação)</h5>
-            <p className="text-xs text-slate-300 leading-relaxed italic">
-              "Esse painel vira real quando você associar leads a product_id e estratégias por produto."
-            </p>
-            <h5 className="text-xs font-black text-emerald-500 uppercase mt-4 mb-2">O que fazer agora? (Ação)</h5>
-            <p className="text-xs text-slate-300 font-bold">
-              No onboarding, cadastre produtos e conecte as estratégias aos produtos antes de escalar.
-            </p>
-          </div>
-        </div>
-      </div>
+      </section>
     </div>
   );
 };

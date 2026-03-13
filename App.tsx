@@ -1,31 +1,31 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import Sidebar from './components/Sidebar';
-import Dashboard from './pages/Dashboard';
-import StrategySetup from './pages/StrategySetup';
-// import LeadSignals from './pages/LeadSignals';
-import DecisionEngine from './pages/DecisionEngine';
-import SDRCommand from './pages/SDRCommand';
-import Insights from './pages/Insights';
 import Auth from './pages/Auth';
 import Workspace from './pages/Workspace';
-import Campaigns from './pages/Campaigns';
-import ContentIdeation from './pages/ContentIdeation';
-import PaidTraffic from './pages/paid-traffic';
 import MetaCallback from './pages/MetaCallback';
-import LeadsCRM from './pages/LeadsCRM';
-import DataMining from './pages/DataMining';
-import Orchestration from './pages/Orchestration';
-import WhatsApp from './pages/WhatsApp';
-import SocialMedia from './pages/SocialMedia';
-import Monetization from './pages/Monetization.tsx';
-import Products from './pages/Products.tsx';
-import Settings from './pages/Settings.tsx';
-import Playbooks from './pages/Playbooks';
-import StrategicPlanning from './pages/StrategicPlanning';
-import ExecutionMotor from './pages/ExecutionMotor';
-import AutomationHub from './pages/AutomationHub';
 import { supabase } from './services/supabaseClient';
+
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const StrategySetup = lazy(() => import('./pages/StrategySetup'));
+const DecisionEngine = lazy(() => import('./pages/DecisionEngine'));
+const SDRCommand = lazy(() => import('./pages/SDRCommand'));
+const Insights = lazy(() => import('./pages/Insights'));
+const Campaigns = lazy(() => import('./pages/Campaigns'));
+const ContentIdeation = lazy(() => import('./pages/ContentIdeation'));
+const PaidTraffic = lazy(() => import('./pages/paid-traffic'));
+const LeadsCRM = lazy(() => import('./pages/LeadsCRM'));
+const DataMining = lazy(() => import('./pages/DataMining'));
+const Orchestration = lazy(() => import('./pages/Orchestration'));
+const WhatsApp = lazy(() => import('./pages/WhatsApp'));
+const SocialMedia = lazy(() => import('./pages/SocialMedia'));
+const Monetization = lazy(() => import('./pages/Monetization.tsx'));
+const Products = lazy(() => import('./pages/Products.tsx'));
+const Settings = lazy(() => import('./pages/Settings.tsx'));
+const Playbooks = lazy(() => import('./pages/Playbooks'));
+const StrategicPlanning = lazy(() => import('./pages/StrategicPlanning'));
+const ExecutionMotor = lazy(() => import('./pages/ExecutionMotor'));
+const AutomationHub = lazy(() => import('./pages/AutomationHub'));
 
 const TAB_META: Record<string, { label: string; pulse: string }> = {
   dashboard: { label: 'Command Center', pulse: 'Radar estrategico ativo' },
@@ -249,7 +249,18 @@ const App: React.FC = () => {
 
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto custom-scrollbar bg-surface-dark/20">
-          {renderContent()}
+          <Suspense
+            fallback={
+              <div className="flex h-full min-h-[320px] items-center justify-center text-slate-400">
+                <div className="flex items-center gap-3 text-sm font-bold uppercase tracking-[0.18em]">
+                  <span className="material-symbols-outlined animate-spin">progress_activity</span>
+                  Carregando modulo
+                </div>
+              </div>
+            }
+          >
+            {renderContent()}
+          </Suspense>
         </main>
       </div>
     </div>

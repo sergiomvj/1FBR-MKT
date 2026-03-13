@@ -1,226 +1,122 @@
+import React, { useMemo, useState } from 'react';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { processSDRInteraction } from '../services/geminiService';
+const opportunityPool = [
+  {
+    name: 'Facebrasil Institutional Pack',
+    fit: 'Alta',
+    why: 'O mercado pede clareza institucional, narrativa forte e esteira coordenada.',
+    nextStep: 'Despachar para Sales e Design com proposta de valor revisada.',
+  },
+  {
+    name: 'Editorial Authority Sprint',
+    fit: 'Media',
+    why: 'Boa aderencia para projetos que precisam ganhar presenca e prova editorial antes da venda.',
+    nextStep: 'Validar com Redacao e Video a esteira de 30 dias.',
+  },
+  {
+    name: 'Bundle de campanha consultiva',
+    fit: 'Alta',
+    why: 'Leads aquecidos demonstram necessidade de pacote mais integrado e menos fragmentado.',
+    nextStep: 'Abrir cenario de margem com Finance e revisar escopo com Sales.',
+  },
+];
 
-interface Message {
-  role: 'user' | 'model';
-  text: string;
-  sentiment?: string;
-  cognitivePath?: string;
-  nextStep?: string;
-}
+const fitTone: Record<string, string> = {
+  Alta: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  Media: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+  Baixa: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+};
 
-const SDRCommand: React.FC<{ tenantId?: string | null }> = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    { 
-      role: 'model', 
-      text: 'Olá! Sou o SDR Virtual da Stitch. Vi que você tem interesse em otimizar sua aquisição corporativa. Qual é o seu maior gargalo hoje?',
-      cognitivePath: 'Initial diagnostic hook focusing on corporate acquisition challenges.',
-      nextStep: 'Identify pain points'
-    }
-  ]);
-  const [inputValue, setInputValue] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [lastAnalysis, setLastAnalysis] = useState<any>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
+const SDRCommand: React.FC<{ tenantId?: string | null }> = ({ tenantId }) => {
+  const [filter, setFilter] = useState('Todas');
+  const [context, setContext] = useState(
+    'Contexto atual: mercado pedindo clareza de posicionamento, bundles consultivos e articulacao entre estrategia e execucao.'
+  );
 
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
-
-  const handleSendMessage = async () => {
-    if (!inputValue.trim() || loading) return;
-
-    const userMsg: Message = { role: 'user', text: inputValue };
-    const newHistory = [...messages, userMsg];
-    setMessages(newHistory);
-    setInputValue('');
-    setLoading(true);
-
-    try {
-      const result = await processSDRInteraction(newHistory.map(m => ({ role: m.role, text: m.text })));
-      const sdrMsg: Message = { 
-        role: 'model', 
-        text: result.reply,
-        sentiment: result.sentiment,
-        cognitivePath: result.cognitivePath,
-        nextStep: result.recommendedNextStep
-      };
-      setMessages(prev => [...prev, sdrMsg]);
-      setLastAnalysis(result);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const visibleOpportunities = useMemo(() => {
+    if (filter === 'Todas') return opportunityPool;
+    return opportunityPool.filter((item) => item.fit === filter);
+  }, [filter]);
 
   return (
-    <div className="p-8 space-y-8 animate-in fade-in duration-500 h-[calc(100vh-64px)] flex flex-col">
-      <div className="flex justify-between items-end shrink-0">
-        <div>
-          <h2 className="text-3xl font-black tracking-tight">SDR Virtual Cognitivo</h2>
-          <p className="text-slate-500 mt-1">Simulação e Monitoramento de Diálogos Guiados.</p>
-        </div>
-        <div className="flex gap-4">
-          <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-            <span className="size-2 bg-emerald-500 rounded-full animate-pulse"></span>
-            <span className="text-xs font-bold text-emerald-500 uppercase">AI Cognitive Engine Active</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-12 gap-8 flex-1 min-h-0">
-        {/* Left Panel: Cognitive Insights */}
-        <div className="col-span-12 lg:col-span-4 space-y-6 overflow-y-auto custom-scrollbar pr-2">
-          <div className="bg-card-dark border border-border-dark rounded-2xl p-6">
-            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-6">Cognitive Insight Panel</h4>
-            {lastAnalysis ? (
-              <div className="space-y-6 animate-in fade-in duration-300">
-                <div>
-                  <label className="text-[10px] font-black uppercase text-slate-500 block mb-2">Sentiment Detected</label>
-                  <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold ${
-                    lastAnalysis.sentiment === 'POSITIVE' ? 'bg-emerald-500/20 text-emerald-500' :
-                    lastAnalysis.sentiment === 'NEGATIVE' ? 'bg-rose-500/20 text-rose-500' :
-                    lastAnalysis.sentiment === 'URGENT' ? 'bg-amber-500/20 text-amber-500' : 'bg-slate-700 text-slate-300'
-                  }`}>
-                    <span className="material-symbols-outlined text-sm">
-                      {lastAnalysis.sentiment === 'POSITIVE' ? 'mood' : 'sentiment_neutral'}
-                    </span>
-                    {lastAnalysis.sentiment}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-black uppercase text-slate-500 block mb-2">Cognitive Reasoning</label>
-                  <p className="text-sm text-slate-400 italic leading-relaxed bg-surface-dark p-4 rounded-xl border border-white/5">
-                    "{lastAnalysis.cognitivePath}"
-                  </p>
-                </div>
-
-                <div className="p-4 bg-primary/10 border border-primary/20 rounded-xl">
-                  <h5 className="text-xs font-black text-primary uppercase mb-2">Recommended Strategy</h5>
-                  <p className="text-sm font-bold text-slate-200">{lastAnalysis.recommendedNextStep}</p>
-                  <div className="mt-3 flex items-center gap-2">
-                    <span className="text-[10px] text-slate-500">Lead Score Impact:</span>
-                    <span className={`text-xs font-bold ${lastAnalysis.scoreUpdate >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                      {lastAnalysis.scoreUpdate >= 0 ? '+' : ''}{lastAnalysis.scoreUpdate}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-12 text-slate-600">
-                <span className="material-symbols-outlined text-4xl mb-2">insights</span>
-                <p className="text-xs font-bold">Inicie o diálogo para ver a análise cognitiva em tempo real.</p>
-              </div>
-            )}
-          </div>
-
-          <div className="bg-surface-dark border border-border-dark rounded-2xl p-6">
-            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Tree Navigation</h4>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 opacity-50">
-                <div className="size-2 bg-slate-600 rounded-full"></div>
-                <span className="text-xs font-medium">1. Qualification Intro</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="size-2 bg-primary rounded-full ring-4 ring-primary/20"></div>
-                <span className="text-xs font-bold text-white">2. Pain Point Discovery</span>
-              </div>
-              <div className="flex items-center gap-3 opacity-50">
-                <div className="size-2 bg-slate-600 rounded-full"></div>
-                <span className="text-xs font-medium">3. Solution Alignment</span>
-              </div>
-              <div className="flex items-center gap-3 opacity-50">
-                <div className="size-2 bg-slate-600 rounded-full"></div>
-                <span className="text-xs font-medium">4. Human Handoff / Demo</span>
-              </div>
+    <div className="p-4 lg:p-8 space-y-8 max-w-7xl mx-auto animate-in fade-in duration-500">
+      <section className="rounded-[28px] border border-border-dark bg-card-dark p-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-primary">
+              <span className="size-2 rounded-full bg-primary"></span>
+              Opportunity Desk
             </div>
+            <h2 className="mt-4 text-4xl font-black tracking-tight text-white">Triagem de oportunidades que podem virar direcionamento comercial</h2>
+            <p className="mt-3 text-sm leading-relaxed text-slate-400">
+              Este modulo do `FBR-MKT` nao simula um SDR. Ele organiza oportunidades a partir do contexto estrategico e prepara o terreno para Sales.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-primary/20 bg-primary/5 px-5 py-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Tenant</p>
+            <p className="mt-2 text-sm font-bold text-white">{tenantId ? 'Conectado' : 'Sem tenant ativo'}</p>
           </div>
         </div>
+      </section>
 
-        {/* Right Panel: Chat Interface */}
-        <div className="col-span-12 lg:col-span-8 bg-card-dark border border-border-dark rounded-2xl flex flex-col min-h-0 overflow-hidden shadow-2xl">
-          <div className="p-4 bg-surface-dark border-b border-border-dark flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary font-bold">
-                <span className="material-symbols-outlined">smart_toy</span>
-              </div>
-              <div>
-                <p className="text-sm font-bold">Virtual SDR Simulator</p>
-                <div className="flex items-center gap-1.5">
-                  <span className="size-1.5 bg-emerald-500 rounded-full"></span>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Cognitive Mode Enabled</p>
-                </div>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button 
-                onClick={() => setMessages([{ role: 'model', text: 'Olá! Como posso ajudar sua empresa hoje?' }])}
-                className="text-slate-400 hover:text-white p-2"
-              >
-                <span className="material-symbols-outlined text-lg">restart_alt</span>
-              </button>
-            </div>
-          </div>
-          
-          <div ref={scrollRef} className="flex-1 p-6 overflow-y-auto space-y-6 custom-scrollbar bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent">
-            {messages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}>
-                <div className={`max-w-[85%] p-4 rounded-2xl shadow-sm ${
-                  msg.role === 'user' 
-                    ? 'bg-primary text-white rounded-tr-none' 
-                    : 'bg-surface-dark text-slate-200 rounded-tl-none border border-border-dark'
-                }`}>
-                  <p className="text-sm leading-relaxed">{msg.text}</p>
-                  {msg.sentiment && (
-                    <div className="mt-2 flex items-center gap-2 opacity-60">
-                       <span className="text-[9px] font-black uppercase tracking-tighter">SDR Tone: {msg.sentiment}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-            {loading && (
-              <div className="flex justify-start">
-                <div className="bg-surface-dark p-4 rounded-2xl rounded-tl-none border border-border-dark">
-                  <div className="flex gap-1">
-                    <div className="size-1.5 bg-primary rounded-full animate-bounce"></div>
-                    <div className="size-1.5 bg-primary rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                    <div className="size-1.5 bg-primary rounded-full animate-bounce [animation-delay:0.4s]"></div>
-                  </div>
-                </div>
-              </div>
-            )}
+      <section className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
+        <div className="space-y-6">
+          <div className="rounded-3xl border border-border-dark bg-card-dark p-6">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Contexto consolidado</p>
+            <textarea
+              value={context}
+              onChange={(event) => setContext(event.target.value)}
+              className="mt-4 h-44 w-full rounded-2xl border border-white/10 bg-background-dark/60 px-4 py-4 text-sm leading-relaxed text-slate-200 outline-none transition focus:border-primary/40"
+            />
           </div>
 
-          <div className="p-6 bg-surface-dark border-t border-border-dark shrink-0">
-            <div className="relative group">
-              <input 
-                className="w-full bg-background-dark border-border-dark rounded-xl py-4 pl-6 pr-14 text-sm text-slate-300 focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none"
-                placeholder="Responda como se fosse o Lead para testar o SDR..."
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-              />
-              <button 
-                onClick={handleSendMessage}
-                disabled={loading || !inputValue.trim()}
-                className="absolute right-3 top-1/2 -translate-y-1/2 bg-primary hover:bg-blue-600 disabled:bg-slate-700 text-white size-10 rounded-lg flex items-center justify-center transition-all shadow-lg shadow-primary/20"
-              >
-                <span className="material-symbols-outlined text-lg">send</span>
-              </button>
-            </div>
-            <p className="text-[10px] text-slate-600 mt-3 text-center font-medium uppercase tracking-[0.2em]">
-              Interaction processed via OpenRouter LLM
+          <div className="rounded-3xl border border-primary/20 bg-primary/5 p-6">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Regra de despacho</p>
+            <p className="mt-3 text-sm leading-relaxed text-slate-300">
+              So encaminhe oportunidade para `FBR-Sales` quando a tese, o ganho percebido e o escopo minimo estiverem claros.
             </p>
           </div>
         </div>
-      </div>
+
+        <div className="rounded-3xl border border-border-dark bg-card-dark p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Fila de oportunidades</p>
+              <h3 className="mt-2 text-2xl font-black text-white">Leituras prontas para triagem comercial</h3>
+            </div>
+            <select
+              value={filter}
+              onChange={(event) => setFilter(event.target.value)}
+              className="rounded-2xl border border-white/10 bg-background-dark/60 px-4 py-3 text-sm text-white outline-none transition focus:border-primary/40"
+            >
+              <option>Todas</option>
+              <option>Alta</option>
+              <option>Media</option>
+              <option>Baixa</option>
+            </select>
+          </div>
+
+          <div className="mt-6 space-y-4">
+            {visibleOpportunities.map((item) => (
+              <article key={item.name} className="rounded-2xl border border-white/8 bg-background-dark/50 p-5">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <h4 className="text-lg font-black text-white">{item.name}</h4>
+                    <p className="mt-3 text-sm leading-relaxed text-slate-400">{item.why}</p>
+                  </div>
+                  <span className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${fitTone[item.fit]}`}>
+                    Fit {item.fit}
+                  </span>
+                </div>
+                <div className="mt-4 rounded-2xl border border-primary/10 bg-primary/5 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Proximo passo</p>
+                  <p className="mt-2 text-sm font-bold leading-relaxed text-white">{item.nextStep}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 };
