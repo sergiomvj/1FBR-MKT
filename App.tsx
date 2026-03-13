@@ -27,6 +27,27 @@ import ExecutionMotor from './pages/ExecutionMotor';
 import AutomationHub from './pages/AutomationHub';
 import { supabase } from './services/supabaseClient';
 
+const TAB_META: Record<string, { label: string; pulse: string }> = {
+  dashboard: { label: 'Command Center', pulse: 'Radar estrategico ativo' },
+  planning: { label: 'Radar de Mercado', pulse: 'Sinais e tendencias em leitura' },
+  strategy: { label: 'Positioning Studio', pulse: 'Posicionamento em refinamento' },
+  campaigns: { label: 'Diretrizes e Campanhas', pulse: 'Campanhas macro em orquestracao' },
+  'content-ideation': { label: 'Narrativas e Conteudo', pulse: 'Linhas editoriais em construcao' },
+  'paid-traffic': { label: 'Growth Tests', pulse: 'Canais sob observacao' },
+  orchestration: { label: 'Directives Hub', pulse: 'Dispatch intersistemas ativo' },
+  datamining: { label: 'Inteligencia Competitiva', pulse: 'Mercado e concorrencia em mineracao' },
+  whatsapp: { label: 'Dispatch Operacional', pulse: 'Encaminhamentos em execucao' },
+  'social-media': { label: 'Marca e Presenca', pulse: 'Presenca institucional em leitura' },
+  leads: { label: 'Leitura de Mercado', pulse: 'Origem e qualidade sob analise' },
+  decisions: { label: 'Decision Room', pulse: 'Recomendacoes acionaveis prontas' },
+  sdr: { label: 'Opportunity Desk', pulse: 'Hipoteses comerciais em triagem' },
+  insights: { label: 'Insights Executivos', pulse: 'Cockpit estrategico atualizado' },
+  monetization: { label: 'Cenarios e Viabilidade', pulse: 'Viabilidade economica em simulacao' },
+  products: { label: 'Projetos Estrategicos', pulse: 'Iniciativas em desenho' },
+  settings: { label: 'Configuracoes', pulse: 'Governanca do sistema' },
+  playbooks: { label: 'Framework Library', pulse: 'Frameworks prontos para reuso' },
+};
+
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -157,6 +178,8 @@ const App: React.FC = () => {
     );
   }
 
+  const currentTabMeta = TAB_META[activeTab] || TAB_META.dashboard;
+
   return (
     <div className="flex h-screen bg-background-dark font-display overflow-hidden">
       {/* Sidebar Overlay for Mobile */}
@@ -181,18 +204,18 @@ const App: React.FC = () => {
           <div className="flex items-center gap-4">
             <div className="flex lg:hidden items-center gap-2">
               <div className="bg-primary size-7 rounded-lg flex items-center justify-center text-white shadow-lg shadow-primary/20">
-                <span className="material-symbols-outlined text-lg">architecture</span>
+                <span className="material-symbols-outlined text-lg">hub</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-black tracking-tight leading-none">Planner</span>
-                <span className="text-[7px] font-bold text-slate-500 uppercase tracking-widest">The Lead Machine</span>
+                <span className="text-sm font-black tracking-tight leading-none">FBR-MKT</span>
+                <span className="text-[7px] font-bold text-slate-500 uppercase tracking-widest">Strategic Intelligence System</span>
               </div>
             </div>
 
             <div className="hidden lg:flex items-center gap-2 text-slate-400">
-              <span className="text-[10px] font-black uppercase tracking-widest">{activeTab}</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">{currentTabMeta.label}</span>
               <span className="text-slate-700">|</span>
-              <span className="text-[10px] font-bold text-primary animate-pulse uppercase tracking-widest">Modo Cognitivo Ativo</span>
+              <span className="text-[10px] font-bold text-primary animate-pulse uppercase tracking-widest">{currentTabMeta.pulse}</span>
             </div>
           </div>
 
@@ -200,12 +223,12 @@ const App: React.FC = () => {
           <div className="flex items-center gap-3 lg:gap-6">
             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
               <span className="size-2 bg-emerald-500 rounded-full"></span>
-              <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Vitals: Normal</span>
+              <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Stack operacional estavel</span>
             </div>
 
             <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
-                <p className="text-[10px] font-black text-white uppercase leading-none mb-0.5">Admin Operator</p>
+                <p className="text-[10px] font-black text-white uppercase leading-none mb-0.5">FBR Strategy Operator</p>
                 <p className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">{activeTenantName || "Workspace"}</p>
               </div>
               <div className="size-9 lg:size-10 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center text-primary overflow-hidden shadow-sm">
